@@ -3,8 +3,9 @@ venv/
 __pycache__/
 *.pyc
 
-# Dataset (too large for GitHub — see data/README.md for download instructions)
+# Dataset (regenerated via src/generate_data.py, see data/README.md)
 data/*.csv
+data/*.json
 
 # Jupyter
 .ipynb_checkpoints/
