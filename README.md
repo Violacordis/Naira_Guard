@@ -52,6 +52,7 @@ pip install -r requirements.txt
 # 3. Run pipeline scripts in order
 python src/generate_data.py
 python src/explore_data.py
+python src/build_features.py
 ```
 
 If PowerShell blocks the activation script with a execution-policy error, you can skip
@@ -60,6 +61,7 @@ activation entirely and call the virtual environment's Python directly instead:
 ```
 venv\Scripts\python.exe src\generate_data.py
 venv\Scripts\python.exe src\explore_data.py
+venv\Scripts\python.exe src\build_features.py
 ```
 
 Each script prints its results to the terminal and saves any charts to `results/`.

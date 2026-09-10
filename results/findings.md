@@ -24,3 +24,26 @@ Chart: `results/class_imbalance.png`
   ₦150,000") catches only 41 of 1,648 fraud cases (2.5% recall), though it is correct
   54.7% of the time it does fire (precision). This motivates the move to ML models: a
   simple rule is precise but nearly blind to the bulk of fraud.
+
+## Step 3: Feature engineering
+
+Four behavioral features were engineered to mirror the three fraud typologies directly
+(`src/build_features.py`), each targeting a specific injection pattern:
+
+| feature | what it captures | legit mean | fraud mean |
+|---|---|---|---|
+| `tx_velocity` | transactions by the same account within one step | 1.08 | 9.10 |
+| `balance_drain_ratio` | share of the account's balance a single outflow consumes (0 for CASH_IN, where "drain" doesn't apply) | 0.15 | 0.45 |
+| `dest_is_novel` | destination account has never received a payment before | 1.9% | 42.2% |
+| `orig_prior_tx_count` | how established the origin account is | 30.1 | 33.4 |
+
+- `tx_velocity` and `dest_is_novel` separate fraud most sharply, directly reflecting the
+  velocity-fraud and agent/cash-out-fraud typologies they were built to capture.
+- `orig_prior_tx_count` barely differs between classes on its own; account-takeover fraud
+  requires an established account (≥3 prior transactions) but doesn't push the count
+  much higher than typical, so this feature is expected to matter more in combination
+  with others (e.g. alongside a large `balance_drain_ratio`) than alone.
+- Early version of `balance_drain_ratio` computed `amount / oldbalanceOrg` for every
+  transaction type, which pulled the legit-class mean up to ~1,671 — an artifact of
+  CASH_IN deposits (unbounded relative to the pre-deposit balance) rather than a real
+  signal. Zeroing it out for CASH_IN rows fixed this.
