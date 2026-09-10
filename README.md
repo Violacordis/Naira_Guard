@@ -36,10 +36,39 @@ note on why a synthetic dataset was used.
    PR-AUC.
 6. Visualize the results: confusion matrices, a model comparison chart, and a feature importance chart.
 
+## How to run
+
+From the project root, in a terminal:
+
+```
+# 1. Create and activate a virtual environment (only needed once)
+python -m venv venv
+venv\Scripts\Activate.ps1        # PowerShell
+# venv\Scripts\activate.bat      # Command Prompt, use this line instead on cmd.exe
+
+# 2. Install dependencies (only needed once, or after requirements.txt changes)
+pip install -r requirements.txt
+
+# 3. Run pipeline scripts in order
+python src/generate_data.py
+python src/explore_data.py
+```
+
+If PowerShell blocks the activation script with a execution-policy error, you can skip
+activation entirely and call the virtual environment's Python directly instead:
+
+```
+venv\Scripts\python.exe src\generate_data.py
+venv\Scripts\python.exe src\explore_data.py
+```
+
+Each script prints its results to the terminal and saves any charts to `results/`.
+
 ## Findings
 
-To be added once the pipeline has run. Charts are saved to `results/`; the code that produced them is
-in `src/`.
+See [results/findings.md](results/findings.md) for a running log of findings from each
+stage, written to be dropped into the paper's Findings/Analysis chapter. Charts are
+saved to `results/`; the code that produced them is in `src/`.
 
 ## Project structure
 
