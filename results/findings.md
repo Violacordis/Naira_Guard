@@ -47,3 +47,40 @@ Four behavioral features were engineered to mirror the three fraud typologies di
   transaction type, which pulled the legit-class mean up to ~1,671 — an artifact of
   CASH_IN deposits (unbounded relative to the pre-deposit balance) rather than a real
   signal. Zeroing it out for CASH_IN rows fixed this.
+
+## Steps 4-6: SMOTE, model training, and evaluation
+
+Chart: `results/confusion_matrices.png`, `results/model_comparison.png`,
+`results/feature_importance.png`
+
+SMOTE was fit on the training split only (240,631 rows, 0.548% fraud), oversampling it
+to 478,626 rows at 50/50 before training; the test split (60,158 rows) was left at the
+real ~0.55% fraud rate so evaluation reflects real-world conditions.
+
+| metric | Random Forest | XGBoost |
+|---|---|---|
+| Precision | 0.858 | 0.840 |
+| Recall | 0.970 | 0.970 |
+| F1 | 0.910 | 0.900 |
+| PR-AUC | 0.958 | 0.985 |
+
+- **Both models comfortably beat the naive baseline** from Step 2 (2.5% recall, 54.7%
+  precision): both catch ~97% of fraud, correctly, roughly 84-86% of the time they flag
+  a transaction. This is the paper's central result — the global methods (RF, XGBoost,
+  SMOTE) transfer well onto Nigeria-style mobile money fraud typologies, even though
+  they were developed and validated on Western card-transaction data.
+- **Confusion matrices**: Random Forest misses 10 of 330 fraud cases in the test set (53
+  false positives); XGBoost also misses 10 (61 false positives). Recall is identical;
+  Random Forest's lower false-positive count gives it the precision edge, while
+  XGBoost's higher PR-AUC (0.985 vs 0.958) means it ranks fraud probability more
+  reliably across thresholds than the single default-threshold metrics above show.
+- **Feature importance diverges sharply between models.** Random Forest's importances
+  spread across the engineered behavioral features as designed: `tx_velocity` and
+  `balance_drain_ratio` lead (~0.27 each), then `dest_is_novel` (~0.10) — directly
+  reflecting the three fraud typologies they were built to capture. XGBoost instead
+  assigns ~0.85 of its importance to a single feature, `type_PAYMENT`. This isn't a bug:
+  since fraud never occurs in PAYMENT transactions (Step 2), "is this a PAYMENT" is an
+  extremely efficient single split that XGBoost's gain-based importance rewards heavily,
+  even though it's an eliminative rule rather than a positive fraud signal. Practically,
+  this means XGBoost's feature-importance chart is less useful than Random Forest's for
+  the paper's typology-mapping argument, even though XGBoost scores better on PR-AUC.
