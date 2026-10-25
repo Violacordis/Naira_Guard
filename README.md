@@ -1,7 +1,7 @@
 # NairaGuard Fraud Detection
 
-A machine learning fraud detection project built for the MIT8212 seminar paper *"Machine Learning-Based
-Fraud Detection in Nigerian Digital Payment Platforms: A Comparative Case Study"* (Miva Open University).
+A machine learning fraud detection project built for the MIT8212 seminar paper *"Development and Evaluation of a Machine Learning-Based
+Fraud Detection in Nigerian Digital Payment Platforms"* (Miva Open University).
 NairaGuard is a fictional Nigerian fintech platform used for illustration only. It is not a real company.
 
 ## Background
