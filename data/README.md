@@ -6,6 +6,10 @@ al.; also used in Lokanan, 2023, *Applied AI Letters*) so results stay comparabl
 paper cites. Fraud cases are injected to match typologies documented specifically in the Nigerian and
 African fintech literature, rather than generic card-fraud patterns.
 
+The dataset has one column beyond the PaySim schema: `fraud_type` records which typology produced each
+fraud row (`account_takeover`, `velocity`, `agent_cashout`), or `none` for legitimate transactions. It
+is used only to evaluate detection per typology and is never given to the models as a feature.
+
 Running the script produces:
 
 - `data/paysim_synthetic.csv`

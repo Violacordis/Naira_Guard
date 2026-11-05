@@ -27,14 +27,18 @@ note on why a synthetic dataset was used.
 1. Generate the dataset, injecting fraud through three typologies: account takeover / SIM-swap style (a
    sudden large transfer draining an account to near zero), velocity fraud (an unusually high frequency
    of transactions in a short window), and agent/cash-out fraud (a disproportionately large cash-out to
-   a destination account with no prior history).
+   a destination account with no prior history). Each transaction is labelled with the typology that
+   produced it (`fraud_type`), so detection can be evaluated per typology. This label is never used as
+   a model feature.
 2. Load and explore the data, quantifying class imbalance and the transaction type breakdown.
 3. Engineer behavioral features, including transaction velocity, balance-drain ratio, and destination
    account novelty, that mirror the fraud injection logic directly.
 4. Address class imbalance with SMOTE.
-5. Train and evaluate Random Forest and XGBoost classifiers, using accuracy, precision, recall, F1, and
-   PR-AUC.
-6. Visualize the results: confusion matrices, a model comparison chart, and a feature importance chart.
+5. Train and evaluate Random Forest and XGBoost classifiers, using precision, recall, F1, and PR-AUC
+   (accuracy is not reported, since it is misleading at a 0.55% fraud rate), plus recall broken down
+   by fraud typology.
+6. Visualize the results: confusion matrices, a model comparison chart, a per-typology recall chart,
+   and a feature importance chart.
 
 ## How to run
 
@@ -69,6 +73,12 @@ venv\Scripts\python.exe src\train_models.py
 Each script prints its results to the terminal and saves any charts to `results/`.
 
 ## Findings
+
+In brief: both models catch about 97% of fraud (precision 0.84-0.86), far ahead of the naive
+threshold rule (2.5% recall). By typology, velocity and agent cash-out fraud are detected almost
+perfectly (99-100% recall), while account takeover is the hardest to detect (78% recall). Missed
+takeovers look like ordinary large transfers, which suggests that non-financial signals, such as a
+recent SIM change, are needed to catch them.
 
 See [results/findings.md](results/findings.md) for a running log of findings from each
 stage, written to be dropped into the paper's Findings/Analysis chapter. Charts are
