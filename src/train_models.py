@@ -103,6 +103,22 @@ metrics_df = pd.DataFrame(
 print("\nTest-set metrics (evaluated on the real ~0.55% fraud rate, no SMOTE applied):")
 print(metrics_df.round(4))
 
+# --- Per-typology recall ----------------------------------------------------------------
+# fraud_type is an evaluation label only (it is not in feature_cols). Only recall is broken
+# down per typology: precision can't be, because false positives are legitimate rows and
+# have no typology to be attributed to.
+TYPOLOGIES = ["account_takeover", "velocity", "agent_cashout"]
+test_types = df.loc[X_test.index, "fraud_type"]
+typology_recall = pd.DataFrame(
+    {
+        name: {t: r["y_pred"][(test_types == t).to_numpy()].mean() for t in TYPOLOGIES}
+        for name, r in results.items()
+    }
+)
+typology_recall.insert(0, "n_test_cases", [int((test_types == t).sum()) for t in TYPOLOGIES])
+print("\nRecall by fraud typology (test set):")
+print(typology_recall.round(4))
+
 # --- Visualize: confusion matrices ---------------------------------------------------
 fig, axes = plt.subplots(1, 2, figsize=(11, 5))
 fig.patch.set_facecolor("#fcfcfb")
@@ -145,6 +161,39 @@ ax.margins(y=0.15)
 fig.tight_layout()
 fig.savefig("results/model_comparison.png", dpi=200, facecolor=fig.get_facecolor())
 print("Saved chart to results/model_comparison.png")
+
+# --- Visualize: per-typology recall ----------------------------------------------------
+fig, ax = plt.subplots(figsize=(8, 5))
+fig.patch.set_facecolor("#fcfcfb")
+x = range(len(TYPOLOGIES))
+for i, (name, color) in enumerate(zip(results, [COLOR_RF, COLOR_XGB])):
+    values = typology_recall[name].tolist()
+    offset = (i - 0.5) * width
+    bars = ax.bar([p + offset for p in x], values, width, label=name, color=color)
+    for bar, val in zip(bars, values):
+        ax.annotate(
+            f"{val:.2f}", (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+            ha="center", va="bottom", fontsize=9, color=COLOR_INK,
+        )
+ax.set_xticks(list(x))
+ax.set_xticklabels(
+    [
+        f"{label}\n(n={n})"
+        for label, n in zip(
+            ["Account takeover", "Velocity", "Agent cash-out"], typology_recall["n_test_cases"]
+        )
+    ]
+)
+ax.set_ylabel("Recall", color=COLOR_MUTED)
+ax.set_title("Recall by fraud typology", color=COLOR_INK, fontsize=13, fontweight="bold")
+ax.spines[["top", "right"]].set_visible(False)
+ax.spines[["left", "bottom"]].set_color(COLOR_GRID)
+ax.tick_params(colors=COLOR_MUTED)
+ax.legend(frameon=False, loc="upper left", ncol=2)
+ax.margins(y=0.15)
+fig.tight_layout()
+fig.savefig("results/typology_recall.png", dpi=200, facecolor=fig.get_facecolor())
+print("Saved chart to results/typology_recall.png")
 
 # --- Visualize: feature importance ----------------------------------------------------
 fig, axes = plt.subplots(1, 2, figsize=(12, 5))

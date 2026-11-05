@@ -86,8 +86,15 @@ def counterparty_for(tx_type):
     return random.choice(merchant_ids), False  # merchant/agent, balance not tracked
 
 
-def record_transaction(step, tx_type, orig, amount, dest, dest_balance_tracked, is_fraud):
-    """Apply a transaction's effect on balances and append the resulting row."""
+def record_transaction(step, tx_type, orig, amount, dest, dest_balance_tracked, is_fraud,
+                       fraud_type="none"):
+    """Apply a transaction's effect on balances and append the resulting row.
+
+    `fraud_type` records which typology injected a fraud row ("none" for legitimate
+    rows). It is an evaluation label only: train_models.py uses it to break recall down
+    per typology and never feeds it to the models as a feature. Adding it draws no random
+    numbers, so the seeded dataset is otherwise unchanged.
+    """
     old_orig = balances[orig]
 
     if tx_type == "CASH_IN":
@@ -124,6 +131,7 @@ def record_transaction(step, tx_type, orig, amount, dest, dest_balance_tracked, 
             "newbalanceDest": round(new_dest, 2),
             "isFraud": is_fraud,
             "isFlaggedFraud": is_flagged,
+            "fraud_type": fraud_type,
         }
     )
 
@@ -167,7 +175,7 @@ def inject_account_takeover(step):
             dest = random.choice(customer_ids)
         record_transaction(
             step + min(i, remaining_steps), "TRANSFER", victim, amount, dest,
-            dest_balance_tracked=True, is_fraud=1,
+            dest_balance_tracked=True, is_fraud=1, fraud_type="account_takeover",
         )
 
 
@@ -185,7 +193,10 @@ def inject_velocity_fraud(step):
         dest, dest_tracked = counterparty_for(tx_type)
         while dest == victim:
             dest, dest_tracked = counterparty_for(tx_type)
-        record_transaction(step, tx_type, victim, amount, dest, dest_tracked, is_fraud=1)
+        record_transaction(
+            step, tx_type, victim, amount, dest, dest_tracked, is_fraud=1,
+            fraud_type="velocity",
+        )
 
 
 # --- Fraud typology 3: agent / cash-out fraud ------------------------------
@@ -198,7 +209,10 @@ def inject_agent_cashout_fraud(step):
     victim = random.choice(eligible)
     amount = balances[victim] * random.uniform(0.7, 0.95)
     novel_dest = f"M{900000000 + random.randint(0, 99999)}"  # unlikely to have been used
-    record_transaction(step, "CASH_OUT", victim, amount, novel_dest, dest_balance_tracked=False, is_fraud=1)
+    record_transaction(
+        step, "CASH_OUT", victim, amount, novel_dest, dest_balance_tracked=False, is_fraud=1,
+        fraud_type="agent_cashout",
+    )
 
 
 # --- Run the simulation -----------------------------------------------------
@@ -234,6 +248,8 @@ n_fraud = int(df["isFraud"].sum())
 print(f"Generated {n_rows:,} transactions")
 print(f"Fraud cases: {n_fraud:,} ({n_fraud / n_rows:.3%})")
 print(f"Naive-rule flagged (isFlaggedFraud): {int(df['isFlaggedFraud'].sum()):,}")
+print("\nFraud rows by typology:")
+print(df.loc[df["isFraud"] == 1, "fraud_type"].value_counts())
 print("\nTransaction type breakdown:")
 print(df["type"].value_counts())
 print("\nSaved to data/paysim_synthetic.csv and data/paysim_synthetic.json")

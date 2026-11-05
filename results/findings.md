@@ -51,7 +51,7 @@ Four behavioral features were engineered to mirror the three fraud typologies di
 ## Steps 4-6: SMOTE, model training, and evaluation
 
 Chart: `results/confusion_matrices.png`, `results/model_comparison.png`,
-`results/feature_importance.png`
+`results/typology_recall.png`, `results/feature_importance.png`
 
 SMOTE was fit on the training split only (240,631 rows, 0.548% fraud), oversampling it
 to 478,626 rows at 50/50 before training; the test split (60,158 rows) was left at the
@@ -84,3 +84,42 @@ real ~0.55% fraud rate so evaluation reflects real-world conditions.
   even though it's an eliminative rule rather than a positive fraud signal. Practically,
   this means XGBoost's feature-importance chart is less useful than Random Forest's for
   the paper's typology-mapping argument, even though XGBoost scores better on PR-AUC.
+  It also reflects how the synthetic data was designed: the generator never injects fraud
+  into PAYMENT transactions. It is not evidence that PAYMENT transactions are safe in
+  practice.
+
+### Recall by fraud typology
+
+Each generated row carries a `fraud_type` label (`account_takeover`, `velocity`,
+`agent_cashout`, or `none`), recorded by the injection function that created it. The label
+is used only for evaluation and is never a model feature. Adding it left the seeded
+dataset otherwise identical, so all figures above are unchanged. Of the 1,648 fraud rows,
+885 are velocity, 549 are agent cash-out, and 214 are account takeover.
+
+| typology | test cases | Random Forest recall | XGBoost recall |
+|---|---|---|---|
+| Account takeover / SIM-swap | 41 | 0.780 | 0.780 |
+| Velocity | 187 | 1.000 | 1.000 |
+| Agent cash-out | 102 | 0.990 | 0.990 |
+
+Only recall is broken down by typology. Precision can't be, because false positives are
+legitimate transactions and have no typology.
+
+- **Account takeover is the hardest typology to detect.** It accounts for 9 of the 10
+  missed fraud cases for each model. Velocity and agent cash-out are detected almost
+  perfectly, because their defining traits (a burst of same-account transactions; a
+  destination never seen before) are captured directly by `tx_velocity` and
+  `dest_is_novel`.
+- **Why account takeover is missed:** each missed takeover is a single transfer, with no
+  burst (`tx_velocity` of 1-2) and mostly to an already-used destination. Its main trait, a
+  high balance-drain ratio (0.85-0.99), also appears in ordinary activity: 2,330 of
+  22,831 legitimate TRANSFERs (10.2%) also move ≥85% of the account's balance. Missed
+  takeovers also tend to be smaller (median ₦21,145 vs ₦72,791 for those caught), so they
+  are harder to tell apart from a customer emptying a small wallet.
+- **Implication for the paper:** using transaction data alone, account takeover is the
+  typology the global methods handle least well. This dataset simulates only the money
+  movements that follow a compromised account, not the SIM-swap or device-change event
+  itself. In practice, those non-financial signals (recent SIM change, new device, new
+  login location) are what would separate a takeover from a legitimate large transfer.
+  The models are the same for all three typologies, so this gap points to missing input
+  signals, not to a weakness in Random Forest or XGBoost.
